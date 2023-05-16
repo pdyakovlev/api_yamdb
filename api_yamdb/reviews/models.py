@@ -34,21 +34,21 @@ class Title(models.Model):
     name = models.CharField(max_length=256)
     year = models.PositiveSmallIntegerField()
     description = models.CharField(max_length=250)
-    genre = models.ManyToManyField()
-    category = models.ForeignKey()
+    genre = models.ManyToManyField(Genre)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
 
 
 class GenreTitle(models.Model):
-    genre = models.ForeignKey()
-    title = models.ForeignKey()
+    genre = models.ForeignKey(Title, on_delete=models.CASCADE)
+    title = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
 
 class Review(models.Model):
-    author = models.ForeignKey()
-    title = models.ForeignKey()
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
     text = models.TextField()
     score = models.IntegerField()
     pub_date = models.DateTimeField()
@@ -58,8 +58,8 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
-    author = models.ForeignKey()
-    review = models.ForeignKey()
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    review = models.ForeignKey(Review, on_delete=models.CASCADE)
     text = models.TextField()
     pub_date = models.DateTimeField()
 
