@@ -1,3 +1,9 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from reviews.models import Title
+from .serializers import TitleSerializer
 
-# Create your views here.
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+    permission_classes = []
