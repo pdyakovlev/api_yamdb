@@ -2,12 +2,26 @@ from rest_framework import serializers
 from reviews.models import Title
 
 
+class GetGenre(serializers.Field):
+
+    def to_representation(self, value):
+        genre = []
+        for val in value.all():
+            genre.append({"name": val.name, "slug": val.slug})
+        return genre
+
+
+class GetCategory(serializers.Field):
+    def to_representation(self, value):
+        category = [{"name": value.name, "slug": value.slug}]
+        return category
+
+
 class TitleSerializer(serializers.ModelSerializer):
-    name = serializers.CharField()
-    # year = serializers.IntegerField()
-    # genre = serializers.ManyRelatedField()
-    # category = serializers.PrimaryKeyRelatedField()
+
+    genre = GetGenre()
+    category = GetCategory()
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = ('name', 'year', 'genre', 'category')
