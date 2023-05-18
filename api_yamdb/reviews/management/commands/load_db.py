@@ -22,7 +22,7 @@ comment = model_tuple('comments.csv', Comment, [
     'id', 'review_id', 'text', 'author_id', 'pub_date'])
 genre_title = model_tuple('genre_title.csv', GenreTitle, [
     'id', 'title_id', 'genre_id'])
-models = (genre_title, user, category, genre, title, review, comment)
+models = (user, category, genre, title, genre_title, review, comment, )
 
 
 class Command(BaseCommand):

@@ -3,7 +3,6 @@ from reviews.models import Title
 from .serializers import TitleSerializer, TitleWriteSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitleFilter
-from rest_framework import permissions
 from django.shortcuts import get_object_or_404
 
 
@@ -32,7 +31,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         # Выбираем сериализатор в зависимости от запроса
         # Это нужно для записи полей genre и category по slug
-        if self.action in permissions.SAFE_METHODS:
+        if self.action in ('list', 'retrieve'):
             return TitleSerializer
         return TitleWriteSerializer
 
