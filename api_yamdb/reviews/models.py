@@ -31,6 +31,9 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
+    """
+    Класс описывающий произведения.
+    """
     name = models.CharField(max_length=256)
     year = models.PositiveSmallIntegerField()
     genre = models.ManyToManyField(
