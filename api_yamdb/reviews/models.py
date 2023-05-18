@@ -38,6 +38,7 @@ class Title(models.Model):
         related_name='titles',
         through='GenreTitle')
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    rating = models.IntegerField(null=True, blank=True,)
 
     def __str__(self):
         return self.name
