@@ -5,6 +5,10 @@ from . import views
 router = DefaultRouter()
 
 router.register('titles', views.TitleViewSet, basename='titles')
+router.register('titles/<int:title_id>/reviews',
+                views.ReviewViewSet,
+                basename='reviews'
+                )
 
 urlpatterns = [
     path('v1/', include(router.urls)),

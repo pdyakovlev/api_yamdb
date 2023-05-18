@@ -31,18 +31,26 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
+    """
+    Класс описывающий произведения.
+    """
     name = models.CharField(max_length=256)
     year = models.PositiveSmallIntegerField()
-    genre = models.ManyToManyField(Genre, related_name='titles')
+    genre = models.ManyToManyField(
+        Genre,
+        related_name='titles',
+        through='GenreTitle')
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    rating = models.IntegerField(null=True, blank=True,)
+    description = models.CharField(max_length=256, default="Без описания")
 
     def __str__(self):
         return self.name
 
 
 class GenreTitle(models.Model):
-    genre = models.ForeignKey(Title, on_delete=models.CASCADE)
-    title = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
 
 class Review(models.Model):
