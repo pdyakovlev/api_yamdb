@@ -1,7 +1,8 @@
 from rest_framework import viewsets, generics
-from reviews.models import Title, Category
+from rest_framework.filters import SearchFilter
+from reviews.models import Title, Category, Genre
 from .serializers import (TitleSerializer, TitleWriteSerializer,
-                          CategorySerializer)
+                          CategorySerializer, GenreSerializer)
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitleFilter
 from django.shortcuts import get_object_or_404
@@ -55,6 +56,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         """Получаем все отзывы к произведению."""
         title = get_object_or_404(Title, id=self.kwargs['title_id'])
         return title.reviews.all()
+
+
+class GenreViewsSet(viewsets.ModelViewSet):
+    """Получение списка жанров."""
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
 
 
 class CategoryListCreateView(

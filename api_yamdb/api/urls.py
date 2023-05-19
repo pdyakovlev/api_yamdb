@@ -9,6 +9,7 @@ router.register('titles/<int:title_id>/reviews',
                 views.ReviewViewSet,
                 basename='reviews'
                 )
+router.register('genres', views.GenreViewsSet, basename='genres')
 
 urlpatterns = [
     path('v1/', include(router.urls)),
