@@ -1,5 +1,8 @@
+from reviews.models import User
+# ^Временно
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from reviews.models import Title, Genre, Category
+from reviews.models import Title, Genre, Category, Review
 import datetime as dt
 
 
@@ -56,3 +59,37 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['name', 'slug']
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+
+    # serializers.SlugRelatedField ищет в связанной базе данных (user)
+    # поле username и присваивает его.
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username',
+    )
+
+    class Meta:
+        model = Review
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('title', 'pub_date', 'author')
+
+    def validate(self, data):
+        if self.context['request'].method == 'POST':
+            user = User.objects.create_user(
+                username='6TestUser',
+                email='Test6@Test')
+            author = user
+            # ^ Временно
+            # author = self.context['request'].user
+            title_id = self.context['view'].kwargs['title_id']
+            title = get_object_or_404(Title, id=title_id)
+            if Review.objects.filter(title=title, author=author).exists():
+                raise serializers.ValidationError(
+                    'Вы уже оставляли отзыв к этому произведению')
+            data['author'] = author
+            data['pub_date'] = dt.datetime.now()
+            data['title'] = title
+
+        return data

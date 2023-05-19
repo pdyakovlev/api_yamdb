@@ -41,7 +41,7 @@ class Title(models.Model):
         related_name='titles',
         through='GenreTitle')
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    rating = models.IntegerField(null=True, blank=True,)
+    rating = models.IntegerField(null=True, blank=True, default=None)
     description = models.CharField(max_length=256, default="Без описания")
 
     def __str__(self):
@@ -55,7 +55,9 @@ class GenreTitle(models.Model):
 
 class Review(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title,
+                              on_delete=models.CASCADE,
+                              related_name="reviews")
     text = models.TextField()
     score = models.IntegerField()
     pub_date = models.DateTimeField()
