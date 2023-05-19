@@ -1,6 +1,7 @@
-from rest_framework import viewsets
-from reviews.models import Title
-from .serializers import TitleSerializer, TitleWriteSerializer
+from rest_framework import viewsets, generics
+from reviews.models import Title, Category
+from .serializers import (TitleSerializer, TitleWriteSerializer,
+                          CategorySerializer)
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitleFilter
 from django.shortcuts import get_object_or_404
@@ -54,3 +55,29 @@ class ReviewViewSet(viewsets.ModelViewSet):
         """Получаем все отзывы к произведению."""
         title = get_object_or_404(Title, id=self.kwargs['title_id'])
         return title.reviews.all()
+
+
+class CategoryListCreateView(
+    generics.ListCreateAPIView,
+    generics.CreateAPIView,
+):
+    """
+    Представление для получения списка категорий и создания новых категории.
+    """
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    # позже добавлю свой prtmission
+    # permission_classes = [permissions.AllowAny]
+
+
+class CategoryDestroyView(generics.DestroyAPIView):
+    """Представление для удаления категории по её slug."""
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    # указываем поле slug, которое будет использоваться для идентификации
+    # категории при удалении
+    lookup_field = 'slug'
+
+    # Только администратор может добавлять и удалять категории
+    # permission_classes = [permissions.IsAdminUser]
+    # добавлю после подключения токенов
