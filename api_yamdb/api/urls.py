@@ -5,7 +5,7 @@ from . import views
 router = DefaultRouter()
 
 router.register('titles', views.TitleViewSet, basename='titles')
-router.register('titles/<int:title_id>/reviews',
+router.register(r'titles/(?P<title_id>\d+)/reviews',
                 views.ReviewViewSet,
                 basename='reviews'
                 )
