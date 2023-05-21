@@ -21,6 +21,14 @@ class GetCategory(serializers.Field):
         return category
 
 
+class GenreSerializer(serializers.ModelSerializer):
+    """Сериализотор для модели Genre."""
+
+    class Meta:
+        model = Genre
+        fields = ('name', 'slug')
+
+
 class TitleSerializer(serializers.ModelSerializer):
 
     genre = GetGenre()
