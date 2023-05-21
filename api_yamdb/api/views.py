@@ -1,12 +1,24 @@
 from rest_framework import viewsets, generics
 from rest_framework.filters import SearchFilter
-from reviews.models import Title, Category, Genre
+from rest_framework.filters import SearchFilter
+from reviews.models import Title, Category, User, Genre
 from .serializers import (TitleSerializer, TitleWriteSerializer,
-                          CategorySerializer, ReviewSerializer,
+                          CategorySerializer, CommentSerializer,
+                          UserSerializer, ReviewSerializer, ReviewSerializer,
                           GenreSerializer)
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitleFilter
+from .permissions import AdminModeratorAuthorPermissions
 from django.shortcuts import get_object_or_404
+from reviews.models import Review
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """Класс отвечающий за отображение пользователей."""
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    filter_backends = (SearchFilter,)
+    search_fields = ('username',)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -53,6 +65,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
     Удалить отзыв по id
         Права доступа: **Автор отзыва, модератор или администратор.**
     """
+    serializer_class = ReviewSerializer
+    permission_classes = (AdminModeratorAuthorPermissions)
+
     def get_queryset(self):
         """Получаем все отзывы к произведению."""
         title = get_object_or_404(Title, id=self.kwargs['title_id'])
@@ -66,6 +81,20 @@ class GenreViewsSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id')
+        )
+        serializer.save(author=self.request.user, title=title)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id')
+        )
+        serializer.save(author=self.request.user, title=title)
 
 
 class CategoryListCreateView(
@@ -92,3 +121,23 @@ class CategoryDestroyView(generics.DestroyAPIView):
     # Только администратор может добавлять и удалять категории
     # permission_classes = [permissions.IsAdminUser]
     # добавлю после подключения токенов
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    """Отображение комментариев."""
+    serializer_class = CommentSerializer
+    permission_classes = (AdminModeratorAuthorPermissions,)
+
+    def get_queryset(self):
+        review = get_object_or_404(
+            Review,
+            id=self.kwargs.get('review_id')
+        )
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(
+            Review,
+            id=self.kwargs.get('review_id')
+        )
+        return serializer.save(author=self.request.user, review=review)
