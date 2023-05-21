@@ -66,7 +66,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         Права доступа: **Автор отзыва, модератор или администратор.**
     """
     serializer_class = ReviewSerializer
-    permission_classes = (AdminModeratorAuthorPermissions)
+    permission_classes = [AdminModeratorAuthorPermissions]
 
     def get_queryset(self):
         """Получаем все отзывы к произведению."""
