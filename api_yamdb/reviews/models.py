@@ -9,6 +9,11 @@ class User(AbstractUser):
     email = models.EmailField(null=True, blank=False, unique=True)
     role = models.CharField(choices=ROLES, default="user", max_length=10)
     bio = models.TextField(null=True, blank=True)
+    # confirmation_code = models.CharField(
+    #     null=True,
+    #     verbose_name='Код подтверждения',
+    #     # unique=True
+    # )
 
     def __str__(self):
         return self.username
