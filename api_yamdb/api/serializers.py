@@ -2,8 +2,39 @@ from reviews.models import User
 # ^Временно
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from reviews.models import Title, Genre, Category, Review
+from reviews.models import Title, Genre, Category, Comment, User, Review
+from django.shortcuts import get_object_or_404
 import datetime as dt
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели пользователя."""
+
+    class Meta:
+        model = User
+        fields = (
+            'username', 'email', 'first_name',
+            'last_name', 'bio', 'role'
+        )
+
+
+class NotAdminSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели пользователя без прав админа."""
+
+    class Meta:
+        model = User
+        fields = (
+            'username', 'email', 'first_name',
+            'last_name', 'bio', 'role')
+        read_only_fields = ('role',)
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+    """Сериализатор регистрации пользователя."""
+
+    class Meta:
+        model = User
+        fields = ('email', 'username')
 
 
 class GetGenre(serializers.Field):
@@ -66,38 +97,57 @@ class TitleWriteSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['name', 'slug']
+        fields = ('name', 'slug')
 
 
-class ReviewSerializer(serializers.ModelSerializer):
-
-    # serializers.SlugRelatedField ищет в связанной базе данных (user)
-    # поле username и присваивает его.
+class CommentSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Комментариев."""
+    review = serializers.SlugRelatedField(
+        slug_field='text',
+        read_only=True
+    )
     author = serializers.SlugRelatedField(
-        read_only=True,
         slug_field='username',
+        read_only=True
     )
 
     class Meta:
-        model = Review
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
-        read_only_fields = ('title', 'pub_date', 'author')
+        model = Comment
+        fields = ('id', 'author', 'review', 'text', 'pub_date')
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Рейтингов."""
+    title = serializers.SlugRelatedField(
+        slug_field='name',
+        read_only=True
+    )
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
+
+    def validate_score(self, value):
+        """Проверка для оценки."""
+        if 0 > value > 10:
+            raise serializers.ValidationError('Оценка должна быть от 1 до 10!')
+        return value
 
     def validate(self, data):
-        if self.context['request'].method == 'POST':
-            user = User.objects.create_user(
-                username='6TestUser',
-                email='Test6@Test')
-            author = user
-            # ^ Временно
-            # author = self.context['request'].user
-            title_id = self.context['view'].kwargs['title_id']
-            title = get_object_or_404(Title, id=title_id)
-            if Review.objects.filter(title=title, author=author).exists():
-                raise serializers.ValidationError(
-                    'Вы уже оставляли отзыв к этому произведению')
-            data['author'] = author
-            data['pub_date'] = dt.datetime.now()
-            data['title'] = title
-
+        """Проверка дубликатов оценки."""
+        request = self.context['request']
+        author = request.user
+        title_id = self.context.get('view').kwargs.get('title_id')
+        title = get_object_or_404(Title, pk=title_id)
+        if (
+            request.method == 'POST'
+            and Review.objects.filter(title=title, author=author).exists()
+        ):
+            raise serializers.ValidationError(
+                'Вы уже оставили отзыв этому произведению.'
+            )
         return data
+
+    class Meta:
+        model = Review
+        fields = ('id', 'author', 'title', 'text', 'score', 'pub_date')
