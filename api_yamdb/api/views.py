@@ -1,12 +1,22 @@
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from rest_framework import viewsets, generics, permissions
+from rest_framework.filters import SearchFilter
 
-from reviews.models import Title, Category, User
+from reviews.models import Title, Category, User, Genre, Review
 from . import serializers
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitleFilter
+from .permissions import AdminModeratorAuthorPermissions
 from django.shortcuts import get_object_or_404
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """Класс отвечающий за отображение пользователей."""
+    queryset = User.objects.all()
+    serializer_class = serializers.UserSerializer
+    filter_backends = (SearchFilter,)
+    search_fields = ('username',)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -53,11 +63,36 @@ class ReviewViewSet(viewsets.ModelViewSet):
     Удалить отзыв по id
         Права доступа: **Автор отзыва, модератор или администратор.**
     """
+    serializer_class = serializers.ReviewSerializer
+    permission_classes = [AdminModeratorAuthorPermissions]
+
     def get_queryset(self):
         """Получаем все отзывы к произведению."""
         title = get_object_or_404(Title, id=self.kwargs['title_id'])
         return title.reviews.all()
     serializer_class = serializers.ReviewSerializer
+
+
+class GenreViewsSet(viewsets.ModelViewSet):
+    """Получение списка жанров."""
+    queryset = Genre.objects.all()
+    serializer_class = serializers.GenreSerializer
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id')
+        )
+        serializer.save(author=self.request.user, title=title)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id')
+        )
+        serializer.save(author=self.request.user, title=title)
 
 
 class CategoryListCreateView(
@@ -107,8 +142,6 @@ class RegisterUserView(generics.CreateAPIView):
     serializer_class = serializers.SingUpSerializer
 
 
-
-
 class GetTokenView(TokenObtainPairView):
     """Получение токена"""
     permission_classes = [permissions.AllowAny]
@@ -128,3 +161,23 @@ class RegisterUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.SingUpSerializer
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    """Отображение комментариев."""
+    serializer_class = serializers.CommentSerializer
+    permission_classes = (AdminModeratorAuthorPermissions,)
+
+    def get_queryset(self):
+        review = get_object_or_404(
+            Review,
+            id=self.kwargs.get('review_id')
+        )
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(
+            Review,
+            id=self.kwargs.get('review_id')
+        )
+        return serializer.save(author=self.request.user, review=review)
