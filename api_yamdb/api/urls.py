@@ -37,4 +37,6 @@ urlpatterns = [
         views.CategoryDestroyView.as_view(),
         name='category-delete'
     ),
+    path('v1/auth/signup/', views.RegisterUserView.as_view(), name='register'),
+    path('v1/auth/token/', views.GetTokenView.as_view(), name='get_token'),
 ]

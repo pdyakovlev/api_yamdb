@@ -2,8 +2,9 @@ from reviews.models import User
 # ^Временно
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from reviews.models import Title, Genre, Category, Comment, User, Review
-from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.tokens import RefreshToken
+from reviews.models import Title, Genre, Category, Review, User, Comment
+from rest_framework_simplejwt.tokens import RefreshToken
 import datetime as dt
 
 
@@ -92,6 +93,7 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = ('name', 'year', 'genre', 'category')
+        
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -151,3 +153,55 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'author', 'title', 'text', 'score', 'pub_date')
+
+
+class SingUpSerializer(serializers.ModelSerializer):
+    """Сериализатор регистрации пользователя"""
+    class Meta:
+        model = User
+        fields = ('email', 'username')
+
+
+class GetTokenSerializer(serializers.Serializer):
+    """Сериализатор для получения токена"""
+    username = serializers.CharField()
+    # confirmation_code = serializers.CharField()
+
+    def validate(self, attrs):
+        user = User.objects.filter(username=attrs.get('username')).first()
+        # confirmation_code = attrs.get('confirmation_code')
+        # if user is None or confirmation_code != user.confirmation_code:
+        if user is None:
+            raise serializers.ValidationError(
+                'The username and/or confirmation code is incorrect'
+            )
+        # создаем токены для пользователя
+        refresh = RefreshToken.for_user(user)
+        # возвращаем строковое представление токена доступа, вместо славаря
+        return str(refresh.access_token)
+
+
+class SingUpSerializer(serializers.ModelSerializer):
+    """Сериализатор регистрации пользователя"""
+    class Meta:
+        model = User
+        fields = ('email', 'username')
+
+
+class GetTokenSerializer(serializers.Serializer):
+    """Сериализатор для получения токена"""
+    username = serializers.CharField()
+    # confirmation_code = serializers.CharField()
+
+    def validate(self, attrs):
+        user = User.objects.filter(username=attrs.get('username')).first()
+        # confirmation_code = attrs.get('confirmation_code')
+        # if user is None or confirmation_code != user.confirmation_code:
+        if user is None:
+            raise serializers.ValidationError(
+                'The username and/or confirmation code is incorrect'
+            )
+        # создаем токены для пользователя
+        refresh = RefreshToken.for_user(user)
+        # возвращаем строковое представление токена доступа, вместо славаря
+        return str(refresh.access_token)
