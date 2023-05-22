@@ -93,7 +93,6 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = ('name', 'year', 'genre', 'category')
-        
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -116,6 +115,12 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('id', 'author', 'review', 'text', 'pub_date')
+        read_only_fields = ('pub_date',)
+
+    def validate(self, data):
+        """Добавляю дату"""
+        data['pub_date'] = dt.datetime.now()
+        return data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -148,37 +153,15 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Вы уже оставили отзыв этому произведению.'
             )
+        data['title_id'] = title_id
+        data['author'] = author
+        data['pub_date'] = dt.datetime.now()
         return data
 
     class Meta:
         model = Review
         fields = ('id', 'author', 'title', 'text', 'score', 'pub_date')
-
-
-class SingUpSerializer(serializers.ModelSerializer):
-    """Сериализатор регистрации пользователя"""
-    class Meta:
-        model = User
-        fields = ('email', 'username')
-
-
-class GetTokenSerializer(serializers.Serializer):
-    """Сериализатор для получения токена"""
-    username = serializers.CharField()
-    # confirmation_code = serializers.CharField()
-
-    def validate(self, attrs):
-        user = User.objects.filter(username=attrs.get('username')).first()
-        # confirmation_code = attrs.get('confirmation_code')
-        # if user is None or confirmation_code != user.confirmation_code:
-        if user is None:
-            raise serializers.ValidationError(
-                'The username and/or confirmation code is incorrect'
-            )
-        # создаем токены для пользователя
-        refresh = RefreshToken.for_user(user)
-        # возвращаем строковое представление токена доступа, вместо славаря
-        return str(refresh.access_token)
+        read_only_fields = ('pub_date',)
 
 
 class SingUpSerializer(serializers.ModelSerializer):
