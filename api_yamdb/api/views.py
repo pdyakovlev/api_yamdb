@@ -6,8 +6,10 @@ from rest_framework.filters import SearchFilter
 from reviews.models import Title, Category, User, Genre, Review, Comment
 from . import serializers
 from django_filters.rest_framework import DjangoFilterBackend
+from .permissions import (
+    IsAdminUserOrReadOnly, AdminModeratorAuthorPermissions, AdminOnly
+)
 from .filters import TitleFilter
-from .permissions import AdminModeratorAuthorPermissions
 from django.shortcuts import get_object_or_404
 
 
@@ -15,6 +17,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """Класс отвечающий за отображение пользователей."""
     queryset = User.objects.all()
     serializer_class = serializers.UserSerializer
+    permission_classes = (permissions.IsAuthenticated, AdminOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
 
@@ -37,6 +40,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         Права доступа: **Администратор**.
     """
     queryset = Title.objects.all()
+    permission_classes = (IsAdminUserOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('name', 'year', 'genre', 'category',)
     filterset_class = TitleFilter
@@ -77,6 +81,7 @@ class GenreViewsSet(viewsets.ModelViewSet):
     """Получение списка жанров."""
     queryset = Genre.objects.all()
     serializer_class = serializers.GenreSerializer
+    permission_classes = (IsAdminUserOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
 
@@ -90,6 +95,7 @@ class CategoryListCreateView(
     """
     queryset = Category.objects.all()
     serializer_class = serializers.CategorySerializer
+    permission_classes = (IsAdminUserOrReadOnly,)
     # позже добавлю свой prtmission
     # permission_classes = [permissions.AllowAny]
 
@@ -98,6 +104,7 @@ class CategoryDestroyView(generics.DestroyAPIView):
     """Представление для удаления категории по её slug."""
     queryset = Category.objects.all()
     serializer_class = serializers.CategorySerializer
+    permission_classes = (AdminOnly,)
     # указываем поле slug, которое будет использоваться для идентификации
     # категории при удалении
     lookup_field = 'slug'
