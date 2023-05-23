@@ -2,13 +2,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from rest_framework import viewsets, generics, permissions
 from rest_framework.filters import SearchFilter
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
 
 from reviews.models import Title, Category, User, Genre, Review, Comment
 from . import serializers
-from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitleFilter
 from .permissions import AdminModeratorAuthorPermissions
-from django.shortcuts import get_object_or_404
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -126,6 +128,21 @@ class RegisterUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.SingUpSerializer
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        # Генерируем код подтверждения
+        confirmation_code = get_random_string(length=6)
+        user.confirmation_code = confirmation_code
+        # Отправляем письмо
+        send_mail(
+            subject='Код подтверждения',
+            message=f'Ваш код подтверждения: {confirmation_code}',
+            from_email='api_yamdb@example.com',  # Адрес отправителя
+            recipient_list=[user.email],  # Адрес получателя
+            fail_silently=False,  # Не сообщать об ошибках
+        )
+        user.save()
 
 
 class CommentViewSet(viewsets.ModelViewSet):
