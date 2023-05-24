@@ -174,13 +174,12 @@ class SingUpSerializer(serializers.ModelSerializer):
 class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена"""
     username = serializers.CharField()
-    # confirmation_code = serializers.CharField()
+    confirmation_code = serializers.CharField()
 
     def validate(self, attrs):
         user = User.objects.filter(username=attrs.get('username')).first()
-        # confirmation_code = attrs.get('confirmation_code')
-        # if user is None or confirmation_code != user.confirmation_code:
-        if user is None:
+        confirmation_code = attrs.get('confirmation_code')
+        if user is None or confirmation_code != user.confirmation_code:
             raise serializers.ValidationError(
                 'The username and/or confirmation code is incorrect'
             )
