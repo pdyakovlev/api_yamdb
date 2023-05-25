@@ -1,5 +1,4 @@
 from reviews.models import User
-# ^Временно
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -10,6 +9,17 @@ import datetime as dt
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели пользователя."""
+
+    def validate_username(self, value):
+        request = self.context['request']
+        user_name = request.POST.get('username')
+        users = User.objects.filter(username=user_name)
+        if users:
+            raise serializers.ValidationError('Пользователь существует.')
+        return value
+
+    username = serializers.RegexField(
+        required=True, max_length=150, regex=r'^[\w.@+-]+$')
 
     class Meta:
         model = User
@@ -166,6 +176,10 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class SingUpSerializer(serializers.ModelSerializer):
     """Сериализатор регистрации пользователя"""
+
+    username = serializers.RegexField(
+        required=True, max_length=150, regex=r'^[\w.@+-]+$')
+
     class Meta:
         model = User
         fields = ('email', 'username')
@@ -179,10 +193,11 @@ class GetTokenSerializer(serializers.Serializer):
     def validate(self, attrs):
         user = User.objects.filter(username=attrs.get('username')).first()
         confirmation_code = attrs.get('confirmation_code')
-        if user is None or confirmation_code != user.confirmation_code:
-            raise serializers.ValidationError(
-                'The username and/or confirmation code is incorrect'
-            )
+        if user is not None:
+            if confirmation_code != user.confirmation_code:
+                raise serializers.ValidationError(
+                    'The username and/or confirmation code is incorrect'
+                )
         # создаем токены для пользователя
         refresh = RefreshToken.for_user(user)
         # возвращаем строковое представление токена доступа, вместо славаря

@@ -1,4 +1,5 @@
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.db import IntegrityError
 from rest_framework.response import Response
 from rest_framework import viewsets, generics, permissions
 from rest_framework.filters import SearchFilter
@@ -6,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-
+from rest_framework import status
 from reviews.models import Title, Category, User, Genre, Review, Comment
 from . import serializers
 from .permissions import (
@@ -14,15 +15,16 @@ from .permissions import (
 )
 from .filters import TitleFilter
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """Класс отвечающий за отображение пользователей."""
     queryset = User.objects.all()
-    serializer_class = serializers.UserSerializer
     permission_classes = (permissions.IsAuthenticated, AdminOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
+    serializer_class = serializers.UserSerializer
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -123,12 +125,22 @@ class GetTokenView(TokenObtainPairView):
     serializer_class = serializers.GetTokenSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        token = {
-            'token': serializer.validated_data,
-        }
-        return Response(token)
+        try:
+            user_name = request.POST.get('username')
+            if user_name == "" or user_name is None:
+                return Response("username is required",
+                                status=status.HTTP_400_BAD_REQUEST)
+            user = User.objects.filter(username=user_name).first()
+            if user is None:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            token = {
+                'token': serializer.validated_data,
+            }
+            return Response(token)
+        except (IntegrityError):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class RegisterUserView(generics.CreateAPIView):
@@ -137,20 +149,45 @@ class RegisterUserView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.SingUpSerializer
 
-    def perform_create(self, serializer):
-        user = serializer.save()
-        # Генерируем код подтверждения
-        confirmation_code = get_random_string(length=6)
-        user.confirmation_code = confirmation_code
-        # Отправляем письмо
-        send_mail(
-            subject='Код подтверждения',
-            message=f'Ваш код подтверждения: {confirmation_code}',
-            from_email='api_yamdb@example.com',  # Адрес отправителя
-            recipient_list=[user.email],  # Адрес получателя
-            fail_silently=False,  # Не сообщать об ошибках
-        )
-        user.save()
+    def post(self, request):
+        try:
+            user_name = request.POST.get('username')
+            user = User.objects.filter(username=user_name).first()
+            e_mail = request.POST.get('email')
+            if user is not None and user.email is not None:
+                resp = "Вы уже зарегестрированы."
+                if user.email != e_mail:
+                    resp = "Вы зарегестрированы с другим адресом эл. почты."
+                    return Response(resp,
+                                    status=status.HTTP_400_BAD_REQUEST)
+                return Response(resp,
+                                status=status.HTTP_200_OK)
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                if serializer.validated_data["username"] == "me":
+                    return Response(serializer.data,
+                                    status=status.HTTP_400_BAD_REQUEST)
+                user = serializer.save()
+                # Генерируем код подтверждения
+                confirmation_code = get_random_string(length=6)
+                user.confirmation_code = confirmation_code
+                # Отправляем письмо
+                send_mail(
+                    subject='Код подтверждения',
+                    message=f'Ваш код подтверждения: {confirmation_code}',
+                    from_email='api_yamdb@example.com',  # Адрес отправителя
+                    recipient_list=[user.email],  # Адрес получателя
+                    fail_silently=False,  # Не сообщать об ошибках
+                )
+                user.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
+        except (IntegrityError):
+            error = "Электронная почта не соответствует имени пользователя."
+            return Response(error,
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
