@@ -3,11 +3,13 @@ from django.db import IntegrityError
 from rest_framework.response import Response
 from rest_framework import viewsets, generics, permissions
 from rest_framework.filters import SearchFilter
+from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
+                                   ListModelMixin)
+from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-from rest_framework import status
 from reviews.models import Title, Category, User, Genre, Review, Comment
 from . import serializers
 from .permissions import (
@@ -16,15 +18,32 @@ from .permissions import (
 from .filters import TitleFilter
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
+from rest_framework.decorators import action
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """Класс отвечающий за отображение пользователей."""
+
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated, AdminOnly,)
     filter_backends = (SearchFilter,)
-    search_fields = ('username',)
+    search_fields = ['username', ]
+    lookup_field = 'username'
     serializer_class = serializers.UserSerializer
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    @action(detail=False, permission_classes=[permissions.IsAuthenticated, ],
+            methods=['get', 'patch'],
+            serializer_class=serializers.UserSelfPatchSerializer)
+    def me(self, request):
+        user = self.request.user
+        if request.method == 'GET':
+            serializer = self.get_serializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -79,16 +98,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
         """Получаем все отзывы к произведению."""
         title = get_object_or_404(Title, id=self.kwargs['title_id'])
         return title.reviews.all()
-    serializer_class = serializers.ReviewSerializer
 
 
-class GenreViewsSet(viewsets.ModelViewSet):
+class GenreViewsSet(CreateModelMixin, ListModelMixin,
+                    DestroyModelMixin, viewsets.GenericViewSet):
     """Получение списка жанров."""
     queryset = Genre.objects.all()
     serializer_class = serializers.GenreSerializer
     permission_classes = (IsAdminUserOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class CategoryListCreateView(
@@ -103,6 +123,8 @@ class CategoryListCreateView(
     permission_classes = (IsAdminUserOrReadOnly,)
     # позже добавлю свой prtmission
     # permission_classes = [permissions.AllowAny]
+    filter_backends = (SearchFilter,)
+    search_fields = ('name', )
 
 
 class CategoryDestroyView(generics.DestroyAPIView):

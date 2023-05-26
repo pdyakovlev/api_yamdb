@@ -1,25 +1,26 @@
 from reviews.models import User
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Title, Genre, Category, Review, User, Comment
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.validators import UniqueValidator
 import datetime as dt
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели пользователя."""
 
-    def validate_username(self, value):
-        request = self.context['request']
-        user_name = request.POST.get('username')
-        users = User.objects.filter(username=user_name)
-        if users:
-            raise serializers.ValidationError('Пользователь существует.')
-        return value
+    email = serializers.EmailField(
+        required=True, max_length=254,
+        validators=[UniqueValidator(queryset=User.objects.all(),
+                                    message='Адрес почты уже используется!')])
 
     username = serializers.RegexField(
-        required=True, max_length=150, regex=r'^[\w.@+-]+$')
+        required=True, max_length=150, regex=r'^[\w.@+-]+$',
+        validators=[UniqueValidator(queryset=User.objects.all(),
+                                    message='Это имя пользователя занято!')])
 
     class Meta:
         model = User
@@ -27,6 +28,10 @@ class UserSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name',
             'last_name', 'bio', 'role'
         )
+
+
+class UserSelfPatchSerializer(UserSerializer):
+    role = serializers.CharField(read_only=True)
 
 
 class NotAdminSerializer(serializers.ModelSerializer):
@@ -59,7 +64,7 @@ class GetGenre(serializers.Field):
 
 class GetCategory(serializers.Field):
     def to_representation(self, value):
-        category = [{"name": value.name, "slug": value.slug}]
+        category = {"name": value.name, "slug": value.slug}
         return category
 
 
@@ -68,6 +73,13 @@ class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
+        lookup_field = 'slug'
+        fields = ('name', 'slug')
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
         fields = ('name', 'slug')
 
 
@@ -75,19 +87,29 @@ class TitleSerializer(serializers.ModelSerializer):
 
     genre = GetGenre()
     category = GetCategory()
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'rating',
                   'description', 'genre', 'category')
 
+    def get_rating(self, obj):
+        raiting = Review.objects.filter(title_id=obj.id).aggregate(
+            Avg('score')
+        )['score__avg']
+        if raiting is not None:
+            return int(raiting)
+        return raiting
+
 
 class TitleWriteSerializer(serializers.ModelSerializer):
 
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
-        slug_field='slug'
+        slug_field='slug',
     )
+
     genre = serializers.SlugRelatedField(
         queryset=Genre.objects.all(),
         slug_field='slug',
@@ -102,13 +124,7 @@ class TitleWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('name', 'year', 'genre', 'category')
-
-
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ('name', 'slug')
+        fields = ('id', 'name', 'year', 'genre', 'category', 'description')
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -162,6 +178,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError(
                 'Вы уже оставили отзыв этому произведению.'
+            )
+        if (request.method == 'POST' and not 0 < data['score'] < 10):
+            raise serializers.ValidationError(
+                'Оценка должна быть от 1 до 10!'
             )
         data['title_id'] = title_id
         data['author'] = author
