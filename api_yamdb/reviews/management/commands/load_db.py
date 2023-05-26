@@ -1,8 +1,10 @@
 import csv
 from collections import namedtuple
+
 from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.utils import IntegrityError
+
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, User)
 

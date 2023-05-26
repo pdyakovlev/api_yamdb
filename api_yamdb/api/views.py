@@ -1,24 +1,23 @@
-from rest_framework_simplejwt.views import TokenObtainPairView
-from django.db import IntegrityError
-from rest_framework.response import Response
-from rest_framework import viewsets, generics, permissions
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
+
 from django.core.mail import send_mail
+from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from django.utils.crypto import get_random_string
-from reviews.models import Title, Category, User, Genre, Review, Comment
+
+from reviews.models import Category, Comment, Genre, Review, Title, User
+
 from . import serializers
-from .permissions import (
-    IsAdminUserOrReadOnly, AdminModeratorAuthorPermissions, AdminOnly
-)
 from .filters import TitleFilter
-from django.shortcuts import get_object_or_404
-from django.core.mail import send_mail
-from rest_framework.decorators import action
+from .permissions import (AdminModeratorAuthorPermissions, AdminOnly,
+                          IsAdminUserOrReadOnly)
 
 
 class UserViewSet(viewsets.ModelViewSet):
