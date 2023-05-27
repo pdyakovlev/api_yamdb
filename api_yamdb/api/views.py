@@ -31,6 +31,8 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserSerializer
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
+    # ↓функция для обращения пользователя к данным собственного аккаунта↓
+
     @action(detail=False, permission_classes=[permissions.IsAuthenticated, ],
             methods=['get', 'patch'],
             serializer_class=serializers.UserSelfPatchSerializer)
@@ -46,22 +48,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    """
-    Получить список всех объектов.
-        Права доступа: Доступно без токена.
-    Добавить новое произведение.
-        Права доступа: Администратор.
-        Нельзя добавлять произведения, которые еще не вышли
-        (год выпуска не может быть больше текущего).
-        При добавлении нового произведения
-        требуется указать уже существующие категорию и жанр.
-    Информация о произведении
-        Права доступа: **Доступно без токена**
-    Обновить информацию о произведении
-        Права доступа: **Администратор**
-    Удалить произведение.
-        Права доступа: **Администратор**.
-    """
+    """Класс отвечающий за отображение произведений."""
     queryset = Title.objects.all()
     permission_classes = (IsAdminUserOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -77,19 +64,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    """
-    Получить список всех отзывов.
-        Права доступа: **Доступно без токена**.
-    Добавить новый отзыв. Пользователь может оставить
-    только один отзыв на произведение.
-        Права доступа: **Аутентифицированные пользователи.**
-    Получить отзыв по id для указанного произведения.
-        Права доступа: **Доступно без токена.**
-    Частично обновить отзыв по id.
-        Права доступа: **Автор отзыва, модератор или администратор.**
-    Удалить отзыв по id
-        Права доступа: **Автор отзыва, модератор или администратор.**
-    """
+    """Класс отвечающий за отображение отзывов."""
     serializer_class = serializers.ReviewSerializer
     permission_classes = [AdminModeratorAuthorPermissions]
 
@@ -101,7 +76,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class GenreViewsSet(CreateModelMixin, ListModelMixin,
                     DestroyModelMixin, viewsets.GenericViewSet):
-    """Получение списка жанров."""
+    """Класс отвечающий за отображение списка жанров."""
     queryset = Genre.objects.all()
     serializer_class = serializers.GenreSerializer
     permission_classes = (IsAdminUserOrReadOnly,)
@@ -120,8 +95,6 @@ class CategoryListCreateView(
     queryset = Category.objects.all()
     serializer_class = serializers.CategorySerializer
     permission_classes = (IsAdminUserOrReadOnly,)
-    # позже добавлю свой prtmission
-    # permission_classes = [permissions.AllowAny]
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
 
@@ -134,10 +107,6 @@ class CategoryDestroyView(generics.DestroyAPIView):
     # указываем поле slug, которое будет использоваться для идентификации
     # категории при удалении
     lookup_field = 'slug'
-
-    # Только администратор может добавлять и удалять категории
-    # permission_classes = [permissions.IsAdminUser]
-    # добавлю после подключения токенов
 
 
 class GetTokenView(TokenObtainPairView):
@@ -168,7 +137,7 @@ class RegisterUserView(generics.CreateAPIView):
     """Регистрация пользователя"""
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
-    serializer_class = serializers.SingUpSerializer
+    serializer_class = serializers.SignUpSerializer
 
     def post(self, request):
         try:

@@ -7,8 +7,6 @@ class User(AbstractUser):
     ROLES = (("user", "User"),
              ("moderator", "Moderator"),
              ("admin", "Admin"))
-    # Лучше вынести в отдельную константу, мне кажется.
-    # Для пользователя нужен валидатор.
     username = models.CharField(
         verbose_name='Имя пользователя',
         max_length=150,

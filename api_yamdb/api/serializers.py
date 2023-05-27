@@ -32,6 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserSelfPatchSerializer(UserSerializer):
+    """Сериализатор для изменения пользователем своих данных."""
     role = serializers.CharField(read_only=True)
 
 
@@ -49,12 +50,16 @@ class NotAdminSerializer(serializers.ModelSerializer):
 class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор регистрации пользователя."""
 
+    username = serializers.RegexField(
+        required=True, max_length=150, regex=r'^[\w.@+-]+$')
+
     class Meta:
         model = User
         fields = ('email', 'username')
 
 
 class GetGenre(serializers.Field):
+    """Получение данных о жанрах."""
 
     def to_representation(self, value):
         genre = []
@@ -64,6 +69,7 @@ class GetGenre(serializers.Field):
 
 
 class GetCategory(serializers.Field):
+    """Получение данных о категориях."""
     def to_representation(self, value):
         category = {"name": value.name, "slug": value.slug}
         return category
@@ -79,13 +85,14 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    """Сериализотор для модели Category."""
     class Meta:
         model = Category
         fields = ('name', 'slug')
 
 
 class TitleSerializer(serializers.ModelSerializer):
-
+    """Сериализотор для получения списка произведений."""
     genre = GetGenre()
     category = GetCategory()
     rating = serializers.SerializerMethodField()
@@ -105,7 +112,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class TitleWriteSerializer(serializers.ModelSerializer):
-
+    """Сериализотор для записа/изменения данных о произведениях."""
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug',
@@ -193,17 +200,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ('id', 'author', 'title', 'text', 'score', 'pub_date')
         read_only_fields = ('pub_date',)
-
-
-class SingUpSerializer(serializers.ModelSerializer):
-    """Сериализатор регистрации пользователя"""
-
-    username = serializers.RegexField(
-        required=True, max_length=150, regex=r'^[\w.@+-]+$')
-
-    class Meta:
-        model = User
-        fields = ('email', 'username')
 
 
 class GetTokenSerializer(serializers.Serializer):
