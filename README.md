@@ -54,7 +54,7 @@ python manage.py migrate
 Если есть необходимость, заполняем базу тестовыми данными командой:
 
 ```bash
-python manage.py load_data
+python manage.py load_db
 ```
 
 Создаем суперпользователя, после меняем в админ панели роль с user на admin:
