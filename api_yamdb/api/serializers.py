@@ -124,7 +124,6 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         many=True
     )
 
-
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'genre', 'category', 'description')
@@ -162,7 +161,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username',
         read_only=True
     )
-
 
     def validate(self, data):
         """Проверка дубликатов оценки."""
