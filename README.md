@@ -54,6 +54,7 @@ python manage.py migrate
 Если есть необходимость, заполняем базу тестовыми данными командой:
 
 ```bash
+
 python manage.py load_db
 ```
 

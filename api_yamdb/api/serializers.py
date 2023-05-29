@@ -175,7 +175,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Вы уже оставили отзыв этому произведению.'
             )
-
         data['title_id'] = title_id
         data['author'] = author
         data['pub_date'] = dt.datetime.now()

@@ -1,4 +1,3 @@
-
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -32,7 +31,6 @@ class User(AbstractUser):
     )
     role = models.CharField(
         verbose_name='Права доступа',
-
         choices=Role.choices,
         default=Role.USER,
         max_length=len(max(Role.values, key=len))
@@ -44,11 +42,11 @@ class User(AbstractUser):
     )
     first_name = models.CharField(
         verbose_name='Имя',
+        max_length=CONST,
         blank=True
     )
     last_name = models.CharField(
         verbose_name='Фамилия',
-
         max_length=CONST,
         blank=True
     )
@@ -62,7 +60,6 @@ class User(AbstractUser):
 
     @property
     def is_user(self):
-
         return self.role == Role.USER
 
     @property
@@ -112,7 +109,6 @@ class Title(models.Model):
     """
     Класс описывающий произведения.
     """
-
     validators = [validators.validate_username]
     name = models.CharField(verbose_name='Имя', max_length=256)
     year = models.PositiveSmallIntegerField(verbose_name='Год')
@@ -124,7 +120,6 @@ class Title(models.Model):
     category = models.ForeignKey(
         Category, verbose_name='Категория', on_delete=models.CASCADE
     )
-
     description = models.CharField(
         verbose_name='Описание', max_length=256, default="Без описания"
     )
@@ -157,7 +152,6 @@ class Review(models.Model):
         validators=(MinValueValidator(1),
                     MaxValueValidator(10)),
         error_messages={'validators': 'Оценка от 1 до 10!'})
-
     pub_date = models.DateTimeField('Дата публикации')
 
     class Meta:
