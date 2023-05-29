@@ -124,12 +124,6 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         many=True
     )
 
-    def validate_year(self, value):
-        year = dt.date.today().year
-        if value > year:
-            raise serializers.ValidationError('Произведение ещё не вышло!')
-        return value
-
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'genre', 'category', 'description')
@@ -168,12 +162,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    def validate_score(self, value):
-        """Проверка для оценки."""
-        if 0 > value > 10:
-            raise serializers.ValidationError('Оценка должна быть от 1 до 10!')
-        return value
-
     def validate(self, data):
         """Проверка дубликатов оценки."""
         request = self.context['request']
@@ -186,10 +174,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError(
                 'Вы уже оставили отзыв этому произведению.'
-            )
-        if (request.method == 'POST' and not 0 < data['score'] < 10):
-            raise serializers.ValidationError(
-                'Оценка должна быть от 1 до 10!'
             )
         data['title_id'] = title_id
         data['author'] = author
