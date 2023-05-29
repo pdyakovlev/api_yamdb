@@ -1,15 +1,25 @@
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+
+from . import validators
+
+
+class Role(models.TextChoices):
+    USER = 'user', 'пользователь'
+    MODERATOR = 'moderator', 'модератор'
+    ADMIN = 'admin', 'администратор'
 
 
 class User(AbstractUser):
     """Класс описывающий создание пользователя."""
-    ROLES = (("user", "User"),
-             ("moderator", "Moderator"),
-             ("admin", "Admin"))
+    CONST = 150
+    validators = [validators.validate_username,
+                  validators.validate_username_bad_sign],
     username = models.CharField(
         verbose_name='Имя пользователя',
-        max_length=150,
+        max_length=CONST,
         unique=True,
         blank=False,
         null=False
@@ -22,9 +32,10 @@ class User(AbstractUser):
     )
     role = models.CharField(
         verbose_name='Права доступа',
-        choices=ROLES,
-        default="user",
-        max_length=10
+
+        choices=Role.choices,
+        default=Role.USER,
+        max_length=len(max(Role.values, key=len))
     )
     bio = models.TextField(
         verbose_name='Биография',
@@ -33,12 +44,12 @@ class User(AbstractUser):
     )
     first_name = models.CharField(
         verbose_name='Имя',
-        max_length=150,
         blank=True
     )
     last_name = models.CharField(
         verbose_name='Фамилия',
-        max_length=150,
+
+        max_length=CONST,
         blank=True
     )
     confirmation_code = models.CharField(
@@ -51,15 +62,16 @@ class User(AbstractUser):
 
     @property
     def is_user(self):
-        return self.role == 'user'
+
+        return self.role == Role.USER
 
     @property
     def is_moderator(self):
-        return self.role == 'moderator'
+        return self.role == Role.MODERATOR
 
     @property
     def is_admin(self):
-        return self.role == 'admin'
+        return self.role == Role.ADMIN
 
     class Meta:
         ordering = ('id',)
@@ -100,6 +112,8 @@ class Title(models.Model):
     """
     Класс описывающий произведения.
     """
+
+    validators = [validators.validate_username]
     name = models.CharField(verbose_name='Имя', max_length=256)
     year = models.PositiveSmallIntegerField(verbose_name='Год')
     genre = models.ManyToManyField(
@@ -110,9 +124,7 @@ class Title(models.Model):
     category = models.ForeignKey(
         Category, verbose_name='Категория', on_delete=models.CASCADE
     )
-    rating = models.IntegerField(
-        verbose_name='Рейтинг', null=True, blank=True,
-        default=None)
+
     description = models.CharField(
         verbose_name='Описание', max_length=256, default="Без описания"
     )
@@ -140,7 +152,12 @@ class Review(models.Model):
         related_name="reviews"
     )
     text = models.TextField('Текст')
-    score = models.IntegerField('Рейтинг')
+    score = models.IntegerField(
+        'Рейтинг',
+        validators=(MinValueValidator(1),
+                    MaxValueValidator(10)),
+        error_messages={'validators': 'Оценка от 1 до 10!'})
+
     pub_date = models.DateTimeField('Дата публикации')
 
     class Meta:
