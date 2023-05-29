@@ -124,6 +124,7 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         many=True
     )
 
+
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'genre', 'category', 'description')
@@ -162,6 +163,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+
     def validate(self, data):
         """Проверка дубликатов оценки."""
         request = self.context['request']
@@ -175,6 +177,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Вы уже оставили отзыв этому произведению.'
             )
+
         data['title_id'] = title_id
         data['author'] = author
         data['pub_date'] = dt.datetime.now()
