@@ -6,6 +6,7 @@ from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.core.mail import send_mail
 from django.db import IntegrityError
@@ -117,16 +118,20 @@ class GetTokenView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         try:
             user_name = request.POST.get('username')
+            confirmation_code = request.POST.get('confirmation_code')
             if user_name == "" or user_name is None:
                 return Response("username is required",
                                 status=status.HTTP_400_BAD_REQUEST)
             user = User.objects.filter(username=user_name).first()
             if user is None:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if confirmation_code != user.confirmation_code:
+                return Response(('The username and/or'
+                                 ' confirmation code is incorrect'),
+                                status=status.HTTP_400_BAD_REQUEST)
+            refresh = RefreshToken.for_user(user)
             token = {
-                'token': serializer.validated_data,
+                'token': str(refresh.access_token)
             }
             return Response(token)
         except (IntegrityError):

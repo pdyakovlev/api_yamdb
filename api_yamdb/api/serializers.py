@@ -2,26 +2,24 @@ import datetime as dt
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.validators import (validate_username,
+                                validate_username_bad_sign)
+from reviews.models import MAX_CHAR_LENGTH
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели пользователя."""
 
-    email = serializers.EmailField(
-        required=True, max_length=254,
-        validators=[UniqueValidator(queryset=User.objects.all(),
-                                    message='Адрес почты уже используется!')])
-
     username = serializers.RegexField(
-        required=True, max_length=150, regex=r'^[\w.@+-]+$',
+        required=True, max_length=MAX_CHAR_LENGTH, regex=r'^[\w.@+-]+$',
         validators=[UniqueValidator(queryset=User.objects.all(),
-                                    message='Это имя пользователя занято!')])
+                                    message='Это имя пользователя занято!'),
+                    validate_username, validate_username_bad_sign])
 
     class Meta:
         model = User
@@ -96,6 +94,12 @@ class TitleSerializer(serializers.ModelSerializer):
     genre = GetGenre()
     category = GetCategory()
     rating = serializers.SerializerMethodField()
+    # если изменить на serializers.IntegerField(read_only=True)
+    # валится тест AssertionError: Проверьте, что произведениям присваивается
+    # рейтинг, равный средной оценке оставленных отзывов. Поле `rating` не
+    # найдено в ответе на GET-запрос к `/api/v1/titles/{titles_id}/`
+    # или содержит некорректное значение. assert None == 4,
+    # потому что метод get_rating ниже больше не работает
 
     class Meta:
         model = Title
@@ -176,6 +180,9 @@ class ReviewSerializer(serializers.ModelSerializer):
                 'Вы уже оставили отзыв этому произведению.'
             )
         data['title_id'] = title_id
+        # если убрать поле выше, то валятся 11 тестов с ошибкой
+        # django.db.utils.IntegrityError: NOT NULL constraint failed:
+        # reviews_review.title_id
         data['author'] = author
         data['pub_date'] = dt.datetime.now()
         return data
@@ -188,18 +195,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена"""
-    username = serializers.CharField()
+    username = serializers.CharField(validators=[validate_username,
+                                                 validate_username_bad_sign],)
     confirmation_code = serializers.CharField()
-
-    def validate(self, attrs):
-        user = User.objects.filter(username=attrs.get('username')).first()
-        confirmation_code = attrs.get('confirmation_code')
-        if user is not None:
-            if confirmation_code != user.confirmation_code:
-                raise serializers.ValidationError(
-                    'The username and/or confirmation code is incorrect'
-                )
-        # создаем токены для пользователя
-        refresh = RefreshToken.for_user(user)
-        # возвращаем строковое представление токена доступа, вместо славаря
-        return str(refresh.access_token)

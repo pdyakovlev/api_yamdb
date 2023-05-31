@@ -2,7 +2,11 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from . import validators
+from .validators import (year_validator,
+                         validate_username,
+                         validate_username_bad_sign)
+
+MAX_CHAR_LENGTH = 150
 
 
 class Role(models.TextChoices):
@@ -13,15 +17,14 @@ class Role(models.TextChoices):
 
 class User(AbstractUser):
     """Класс описывающий создание пользователя."""
-    CONST = 150
-    validators = [validators.validate_username,
-                  validators.validate_username_bad_sign],
+
     username = models.CharField(
         verbose_name='Имя пользователя',
-        max_length=CONST,
+        max_length=MAX_CHAR_LENGTH,
         unique=True,
         blank=False,
-        null=False
+        null=False,
+        validators=[validate_username, validate_username_bad_sign],
     )
     email = models.EmailField(
         verbose_name='Электронная почта',
@@ -42,12 +45,12 @@ class User(AbstractUser):
     )
     first_name = models.CharField(
         verbose_name='Имя',
-        max_length=CONST,
+        max_length=MAX_CHAR_LENGTH,
         blank=True
     )
     last_name = models.CharField(
         verbose_name='Фамилия',
-        max_length=CONST,
+        max_length=MAX_CHAR_LENGTH,
         blank=True
     )
     confirmation_code = models.CharField(
@@ -109,9 +112,10 @@ class Title(models.Model):
     """
     Класс описывающий произведения.
     """
-    validators = [validators.validate_username]
     name = models.CharField(verbose_name='Имя', max_length=256)
-    year = models.PositiveSmallIntegerField(verbose_name='Год')
+    year = models.PositiveSmallIntegerField(verbose_name='Год',
+                                            validators=[year_validator]
+                                            )
     genre = models.ManyToManyField(
         Genre,
         verbose_name='Жанр',
