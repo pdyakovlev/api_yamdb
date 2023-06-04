@@ -93,26 +93,17 @@ class TitleSerializer(serializers.ModelSerializer):
     """Сериализотор для получения списка произведений."""
     genre = GetGenre()
     category = GetCategory()
-    rating = serializers.SerializerMethodField()
-    # если изменить на serializers.IntegerField(read_only=True)
-    # валится тест AssertionError: Проверьте, что произведениям присваивается
-    # рейтинг, равный средной оценке оставленных отзывов. Поле `rating` не
-    # найдено в ответе на GET-запрос к `/api/v1/titles/{titles_id}/`
-    # или содержит некорректное значение. assert None == 4,
-    # потому что метод get_rating ниже больше не работает
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'rating',
                   'description', 'genre', 'category')
 
-    def get_rating(self, obj):
-        raiting = Review.objects.filter(title_id=obj.id).aggregate(
-            Avg('score')
-        )['score__avg']
-        if raiting is not None:
-            return int(raiting)
-        return raiting
+    def to_representation(self, instance):
+        instance.rating = instance.reviews.aggregate(Avg('score'))['score__avg'
+                                                                   ]
+        return super().to_representation(instance)
 
 
 class TitleWriteSerializer(serializers.ModelSerializer):
@@ -179,11 +170,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Вы уже оставили отзыв этому произведению.'
             )
-        data['title_id'] = title_id
-        # если убрать поле выше, то валятся 11 тестов с ошибкой
-        # django.db.utils.IntegrityError: NOT NULL constraint failed:
-        # reviews_review.title_id
-        data['author'] = author
         data['pub_date'] = dt.datetime.now()
         return data
 

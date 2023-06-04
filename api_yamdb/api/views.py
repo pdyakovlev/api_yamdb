@@ -1,17 +1,19 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status, viewsets
+from rest_framework.serializers import ValidationError
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from django.utils.crypto import get_random_string
+from django.contrib.auth.tokens import default_token_generator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
@@ -69,10 +71,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ReviewSerializer
     permission_classes = [AdminModeratorAuthorPermissions]
 
+    def get_title(self):
+        return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+
     def get_queryset(self):
-        """Получаем все отзывы к произведению."""
-        title = get_object_or_404(Title, id=self.kwargs['title_id'])
-        return title.reviews.all()
+        return self.get_title().reviews.all()
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user, title=self.get_title())
 
 
 class GenreViewsSet(CreateModelMixin, ListModelMixin,
@@ -86,27 +92,27 @@ class GenreViewsSet(CreateModelMixin, ListModelMixin,
     lookup_field = 'slug'
 
 
-class CategoryListCreateView(
-    generics.ListCreateAPIView,
-    generics.CreateAPIView,
-):
+class BaseCategoryView(generics.GenericAPIView):
+    """
+    Базовое представление для категорий.
+    """
+    queryset = Category.objects.all()
+    serializer_class = serializers.CategorySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [SearchFilter]
+    search_fields = ['name']
+
+
+class CategoryListCreateView(BaseCategoryView, generics.ListCreateAPIView):
     """
     Представление для получения списка категорий и создания новых категории.
     """
-    queryset = Category.objects.all()
-    serializer_class = serializers.CategorySerializer
-    permission_classes = (IsAdminUserOrReadOnly,)
-    filter_backends = (SearchFilter,)
-    search_fields = ('name', )
+    permission_classes = [IsAdminUserOrReadOnly]
 
 
-class CategoryDestroyView(generics.DestroyAPIView):
+class CategoryDestroyView(BaseCategoryView, generics.DestroyAPIView):
     """Представление для удаления категории по её slug."""
-    queryset = Category.objects.all()
-    serializer_class = serializers.CategorySerializer
-    permission_classes = (AdminOnly,)
-    # указываем поле slug, которое будет использоваться для идентификации
-    # категории при удалении
+    permission_classes = [AdminOnly]
     lookup_field = 'slug'
 
 
@@ -125,10 +131,9 @@ class GetTokenView(TokenObtainPairView):
             user = User.objects.filter(username=user_name).first()
             if user is None:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            if confirmation_code != user.confirmation_code:
-                return Response(('The username and/or'
-                                 ' confirmation code is incorrect'),
-                                status=status.HTTP_400_BAD_REQUEST)
+            if not default_token_generator.check_token(user,
+                                                       confirmation_code):
+                raise ValidationError('Неверный код подтверждения.')
             refresh = RefreshToken.for_user(user)
             token = {
                 'token': str(refresh.access_token)
@@ -164,7 +169,7 @@ class RegisterUserView(generics.CreateAPIView):
                                     status=status.HTTP_400_BAD_REQUEST)
                 user = serializer.save()
                 # Генерируем код подтверждения
-                confirmation_code = get_random_string(length=6)
+                confirmation_code = default_token_generator.make_token(user)
                 user.confirmation_code = confirmation_code
                 # Отправляем письмо
                 send_mail(
