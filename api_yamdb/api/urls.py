@@ -25,20 +25,14 @@ router.register(
     views.CommentViewSet,
     basename='comments'
 )
-router.register('genres', views.GenreViewsSet, basename='genres')
+router.register('genres', views.GenreViewSet, basename='genres')
+router.register('categories', views.CategoryViewSet,
+                basename='category-list-create')
+router.register('categories/<slug:slug>', views.CategoryViewSet,
+                basename='category-delete')
 
 urlpatterns = [
     path('v1/', include(router.urls)),
-    path(
-        'v1/categories/',
-        views.CategoryListCreateView.as_view(),
-        name='category-list-create'
-    ),
-    path(
-        'v1/categories/<slug:slug>/',
-        views.CategoryDestroyView.as_view(),
-        name='category-delete'
-    ),
     path('v1/auth/signup/', views.RegisterUserView.as_view(), name='register'),
     path('v1/auth/token/', views.GetTokenView.as_view(), name='get_token'),
 ]

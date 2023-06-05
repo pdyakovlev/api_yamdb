@@ -156,11 +156,17 @@ class Review(models.Model):
         validators=(MinValueValidator(1),
                     MaxValueValidator(10)),
         error_messages={'validators': 'Оценка от 1 до 10!'})
-    pub_date = models.DateTimeField('Дата публикации')
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True,
+                                    db_index=True)
 
     class Meta:
         verbose_name = 'Рейтинг'
         verbose_name_plural = 'Рейтинг'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('title', 'author', ),
+                name='unique review'
+            )]
 
     def __str__(self):
         return str(self.title)
@@ -175,7 +181,8 @@ class Comment(models.Model):
         Review, verbose_name='Рейтинг', on_delete=models.CASCADE
     )
     text = models.TextField('Текст')
-    pub_date = models.DateTimeField('Дата публикации')
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True,
+                                    db_index=True)
 
     class Meta:
         verbose_name = 'Комментарий'

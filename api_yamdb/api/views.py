@@ -3,11 +3,9 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.serializers import ValidationError
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
-                                   ListModelMixin)
+from rest_framework import mixins
+from rest_framework import views
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.core.mail import send_mail
@@ -81,42 +79,34 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, title=self.get_title())
 
 
-class GenreViewsSet(CreateModelMixin, ListModelMixin,
-                    DestroyModelMixin, viewsets.GenericViewSet):
-    """Класс отвечающий за отображение списка жанров."""
-    queryset = Genre.objects.all()
-    serializer_class = serializers.GenreSerializer
-    permission_classes = (IsAdminUserOrReadOnly,)
+class CategoryGenreListCreateDestroyViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    Базовое представление для категорий и жанров.
+    """
+    lookup_field = 'slug'
+    permission_classes = [IsAdminUserOrReadOnly]
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
-    lookup_field = 'slug'
 
 
-class BaseCategoryView(generics.GenericAPIView):
-    """
-    Базовое представление для категорий.
-    """
+class CategoryViewSet(CategoryGenreListCreateDestroyViewSet):
+    """Представление для категорий"""
     queryset = Category.objects.all()
     serializer_class = serializers.CategorySerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [SearchFilter]
-    search_fields = ['name']
 
 
-class CategoryListCreateView(BaseCategoryView, generics.ListCreateAPIView):
-    """
-    Представление для получения списка категорий и создания новых категории.
-    """
-    permission_classes = [IsAdminUserOrReadOnly]
+class GenreViewSet(CategoryGenreListCreateDestroyViewSet):
+    """Представление для жанров"""
+    queryset = Genre.objects.all()
+    serializer_class = serializers.GenreSerializer
 
 
-class CategoryDestroyView(BaseCategoryView, generics.DestroyAPIView):
-    """Представление для удаления категории по её slug."""
-    permission_classes = [AdminOnly]
-    lookup_field = 'slug'
-
-
-class GetTokenView(TokenObtainPairView):
+class GetTokenView(views.APIView):
     """Получение токена"""
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.GetTokenSerializer
@@ -125,10 +115,9 @@ class GetTokenView(TokenObtainPairView):
         try:
             user_name = request.POST.get('username')
             confirmation_code = request.POST.get('confirmation_code')
-            if user_name == "" or user_name is None:
-                return Response("username is required",
-                                status=status.HTTP_400_BAD_REQUEST)
-            user = User.objects.filter(username=user_name).first()
+            serializer = serializers.GetTokenSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = get_object_or_404(User, username=user_name)
             if user is None:
                 return Response(status=status.HTTP_404_NOT_FOUND)
             if not default_token_generator.check_token(user,

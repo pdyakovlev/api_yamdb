@@ -1,5 +1,3 @@
-import datetime as dt
-
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -140,11 +138,6 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('id', 'author', 'review', 'text', 'pub_date')
         read_only_fields = ('pub_date',)
 
-    def validate(self, data):
-        """Добавляю дату"""
-        data['pub_date'] = dt.datetime.now()
-        return data
-
 
 class ReviewSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Рейтингов."""
@@ -168,9 +161,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             and Review.objects.filter(title=title, author=author).exists()
         ):
             raise serializers.ValidationError(
-                'Вы уже оставили отзыв этому произведению.'
-            )
-        data['pub_date'] = dt.datetime.now()
+                'Может существовать только один отзыв!')
         return data
 
     class Meta:
@@ -184,3 +175,9 @@ class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(validators=[validate_username,
                                                  validate_username_bad_sign],)
     confirmation_code = serializers.CharField()
+
+    def validate(self, data):
+        user_name = data.get('username')
+        if user_name == "" or user_name is None:
+            raise serializers.ValidationError('Проверте username!')
+        return data
