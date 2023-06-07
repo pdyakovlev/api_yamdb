@@ -53,6 +53,19 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'username')
 
+    def validate(self, data):
+        user_name = data.get('username')
+        if user_name == "me":
+            resp = "Имя пользователя не может быть <me>."
+            raise serializers.ValidationError(resp)
+        user = User.objects.filter(username=user_name).first()
+        e_mail = data.get('email')
+        if user is not None and user.email is not None:
+            if user.email != e_mail:
+                resp = "Вы зарегестрированы с другим адресом эл. почты."
+                raise serializers.ValidationError(resp)
+        return data
+
 
 class GetGenre(serializers.Field):
     """Получение данных о жанрах."""

@@ -6,6 +6,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'p&l%385148kslhtyn^##a1)ilz@4zqj=rq&agdol^##zgl9(vs'
 
+TOKEN_EMAIL = "api_yamdb@mail.com"
+
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
