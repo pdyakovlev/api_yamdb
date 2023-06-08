@@ -11,8 +11,7 @@ def year_validator(value):
 def validate_username(value):
     if value == 'me':
         raise ValidationError(
-            ('Имя пользователя не может быть <me>.'),
-            params={'value': value},
+            ('Имя пользователя не может быть <me>.')
         )
 
 

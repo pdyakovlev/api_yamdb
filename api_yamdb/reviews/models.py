@@ -7,6 +7,7 @@ from .validators import (year_validator,
                          validate_username_bad_sign)
 
 MAX_CHAR_LENGTH = 150
+MAX_EMAIL_LENGTH = 254
 
 
 class Role(models.TextChoices):
@@ -28,7 +29,7 @@ class User(AbstractUser):
     )
     email = models.EmailField(
         verbose_name='Электронная почта',
-        max_length=254,
+        max_length=MAX_EMAIL_LENGTH,
         blank=False,
         unique=True
     )

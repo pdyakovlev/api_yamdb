@@ -8,6 +8,7 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import (validate_username,
                                 validate_username_bad_sign)
 from reviews.models import MAX_CHAR_LENGTH
+from reviews.models import MAX_EMAIL_LENGTH
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -47,24 +48,17 @@ class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор регистрации пользователя."""
 
     username = serializers.RegexField(
-        required=True, max_length=150, regex=r'^[\w.@+-]+$')
+        required=True, max_length=MAX_CHAR_LENGTH, regex=r'^[\w.@+-]+$',
+        validators=[validate_username, validate_username_bad_sign])
+
+    email = serializers.EmailField(
+        required=True,
+        max_length=MAX_EMAIL_LENGTH,
+    )
 
     class Meta:
         model = User
         fields = ('email', 'username')
-
-    def validate(self, data):
-        user_name = data.get('username')
-        if user_name == "me":
-            resp = "Имя пользователя не может быть <me>."
-            raise serializers.ValidationError(resp)
-        user = User.objects.filter(username=user_name).first()
-        e_mail = data.get('email')
-        if user is not None and user.email is not None:
-            if user.email != e_mail:
-                resp = "Вы зарегестрированы с другим адресом эл. почты."
-                raise serializers.ValidationError(resp)
-        return data
 
 
 class GetGenre(serializers.Field):

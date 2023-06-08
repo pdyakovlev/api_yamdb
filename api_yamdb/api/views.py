@@ -137,21 +137,6 @@ class RegisterUserView(generics.CreateAPIView):
     serializer_class = serializers.SignUpSerializer
 
     def create(self, request, *args, **kwargs):
-        user_name = request.POST.get('username')
-        user = User.objects.filter(username=user_name).first()
-        e_mail = request.POST.get('email')
-        if user is not None and user.email is not None:
-            if user.email != e_mail:
-                resp = "Вы зарегестрированы с другим адресом эл. почты."
-                return Response(resp,
-                                status=status.HTTP_400_BAD_REQUEST)
-            resp = "Вы уже зарегестрированы"
-            return Response(resp,
-                            status=status.HTTP_200_OK)
-        # Тесты валятся на повторный запрос от существующего пользователя с
-        # возвратом кода 200 и на создание админом с возвратом кода 200
-        # если не проверять до serializer.is_valid,
-        # после serializer.is_valid код в таком случае всегда 400
         serializer = serializers.SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
