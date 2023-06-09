@@ -139,11 +139,15 @@ class RegisterUserView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = serializers.SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         try:
             user, _ = User.objects.get_or_create(**serializer.validated_data)
-
         except IntegrityError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+    # Если убрать блок try/expect то падает AssertionError: Если POST-запрос,
+    # отправленный на эндпоинт `/api/v1/auth/signup/`, содержит `email`
+    # зарегистрированного пользователя и незанятый `username`
+    # должен вернуться ответ со статусом 400.
 
         confirmation_code = default_token_generator.make_token(user)
         email_data = {

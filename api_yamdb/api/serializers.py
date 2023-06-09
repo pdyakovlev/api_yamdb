@@ -47,8 +47,8 @@ class NotAdminSerializer(serializers.ModelSerializer):
 class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор регистрации пользователя."""
 
-    username = serializers.RegexField(
-        required=True, max_length=MAX_CHAR_LENGTH, regex=r'^[\w.@+-]+$',
+    username = serializers.CharField(
+        required=True, max_length=MAX_CHAR_LENGTH,
         validators=[validate_username, validate_username_bad_sign])
 
     email = serializers.EmailField(
